@@ -20,6 +20,7 @@ const branch      = getInput('branch');
 const commit      = getInput('commit');
 const skipInstall = getInput('skip-install') === 'true';
 const branchCmd   = branch && !commit ? `-b ${branch}` : '';
+const cwd         = getInput('working-directory');
 
 const gitCloneCmd    = `git clone https://github.com/DevExpress/testcafe.git ${branchCmd}`;
 const gitCheckoutCmd = `git -C testcafe checkout ${commit}`;
@@ -31,26 +32,34 @@ log(`BRANCH: ${getInputStr(branch)}`);
 log(`COMMIT: ${getInputStr(commit)}`);
 log(`SKIP INSTALL: ${skipInstall}`);
 
+const execOptions = {
+    stdio: 'inherit'
+};
+
+if(!!cwd) {
+    execOptions.cwd = cwd;
+}
+
 if (branch || commit) {
     log('Cloning the TestCafe repository...');
     log(gitCloneCmd);
-    execSync(gitCloneCmd, { stdio: 'inherit' });
+    execSync(gitCloneCmd, execOptions);
 
     log('Checking out the repository...');
     log(gitCheckoutCmd);
-    execSync(gitCheckoutCmd, { stdio: 'inherit' });
+    execSync(gitCheckoutCmd, execOptions);
 
     log('Installing npm packages...');
-    execSync(`cd testcafe && npm install `, { stdio: 'inherit' });
+    execSync(`cd testcafe && npm install `, execOptions);
 
     log('Building TestCafe...');
-    execSync(`cd testcafe && npx gulp fast-build`, { stdio: 'inherit' });
+    execSync(`cd testcafe && npx gulp fast-build`, execOptions);
     testCafeCmd = 'node testcafe/bin/testcafe';
 }
 else {
     if (!skipInstall) {
         log('Installing TestCafe from npm...');
-        execSync(`npm i testcafe@${version}`);
+        execSync(`npm i testcafe@${version}`, execOptions);
     }
     testCafeCmd = 'npx testcafe';
 }
@@ -61,4 +70,4 @@ if (os.type() === 'Linux')
     xvfbCmd = `xvfb-run --server-args="-screen 0 1280x720x24" `;
 
 log('Running TestCafe...');
-execSync(`${xvfbCmd}${testCafeCmd} ${testCafeArguments}`, { stdio: 'inherit' });
+execSync(`${xvfbCmd}${testCafeCmd} ${testCafeArguments}`, execOptions);
